@@ -18,6 +18,8 @@ package de.kirsel.fotobox;
 import android.Manifest;
 import android.app.Activity;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
@@ -38,7 +40,10 @@ import java.nio.ByteBuffer;
 public class FotoActivity extends Activity {
   private static final String TAG = FotoActivity.class.getSimpleName();
 
+  public static final boolean USE_THERMAL_PRINTER = true;
 
+  private FotoCamera mCamera;
+  private ThermalPrinter mThermalPrinter;
   /*
    * Driver for the doorbell button;
    */
@@ -65,6 +70,9 @@ public class FotoActivity extends Activity {
       return;
     }
 
+    if (USE_THERMAL_PRINTER) {
+      mThermalPrinter = new ThermalPrinter(this);
+    }
 
     // Creates new handlers and associated threads for camera and networking operations.
     mCameraThread = new HandlerThread("CameraBackground");
@@ -100,6 +108,10 @@ public class FotoActivity extends Activity {
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
+    if (mThermalPrinter != null) {
+      mThermalPrinter.close();
+      mThermalPrinter = null;
+    }
   }
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -122,16 +134,19 @@ public class FotoActivity extends Activity {
       final byte[] imageBytes = new byte[imageBuf.remaining()];
       imageBuf.get(imageBytes);
       image.close();
+      Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
 
-      onPictureTaken(imageBytes);
+      onPictureTaken(bitmap);
     }
   };
 
   /**
    * Handle image processing
    */
-  private void onPictureTaken(final byte[] imageBytes) {
-    if (imageBytes != null) {
+  private void onPictureTaken(Bitmap bitmap) {
+    if (bitmap != null) {
+      // TODO: Process image
+      mThermalPrinter.printImage(bitmap);
     }
   }
 }
