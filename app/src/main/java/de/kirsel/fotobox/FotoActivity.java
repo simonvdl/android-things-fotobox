@@ -23,7 +23,6 @@ import android.media.ImageReader;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.util.Base64;
 import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.Button;
@@ -39,8 +38,6 @@ import java.nio.ByteBuffer;
 public class FotoActivity extends Activity {
   private static final String TAG = FotoActivity.class.getSimpleName();
 
-  //private FirebaseDatabase mDatabase;
-  private FotoCamera mCamera;
 
   /*
    * Driver for the doorbell button;
@@ -57,16 +54,6 @@ public class FotoActivity extends Activity {
    */
   private HandlerThread mCameraThread;
 
-  /**
-   * A {@link Handler} for running Cloud tasks in the background.
-   */
-  private Handler mCloudHandler;
-
-  /**
-   * An additional thread for running Cloud tasks that shouldn't block the UI.
-   */
-  private HandlerThread mCloudThread;
-
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     Log.d(TAG, "Doorbell Activity created.");
@@ -78,16 +65,11 @@ public class FotoActivity extends Activity {
       return;
     }
 
-    //mDatabase = FirebaseDatabase.getInstance();
 
     // Creates new handlers and associated threads for camera and networking operations.
     mCameraThread = new HandlerThread("CameraBackground");
     mCameraThread.start();
     mCameraHandler = new Handler(mCameraThread.getLooper());
-
-    mCloudThread = new HandlerThread("CloudThread");
-    mCloudThread.start();
-    mCloudHandler = new Handler(mCloudThread.getLooper());
 
     // Initialize the doorbell button driver
     initPIO();
@@ -113,7 +95,6 @@ public class FotoActivity extends Activity {
     mCamera.shutDown();
 
     mCameraThread.quitSafely();
-    mCloudThread.quitSafely();
     try {
       mButtonInputDriver.close();
     } catch (IOException e) {
@@ -123,7 +104,6 @@ public class FotoActivity extends Activity {
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
     if (keyCode == KeyEvent.KEYCODE_ENTER) {
-      // Doorbell rang!
       Log.d(TAG, "button pressed");
       mCamera.takePicture();
       return true;
@@ -148,32 +128,10 @@ public class FotoActivity extends Activity {
   };
 
   /**
-   * Handle image processing in Firebase and Cloud Vision.
+   * Handle image processing
    */
   private void onPictureTaken(final byte[] imageBytes) {
     if (imageBytes != null) {
-      //final DatabaseReference log = mDatabase.getReference("logs").push();
-      String imageStr = Base64.encodeToString(imageBytes, Base64.NO_WRAP | Base64.URL_SAFE);
-      // upload image to firebase
-      //log.child("timestamp").setValue(ServerValue.TIMESTAMP);
-      //log.child("image").setValue(imageStr);
-
-      //mCloudHandler.post(new Runnable() {
-      //    @Override
-      //    public void run() {
-      //        Log.d(TAG, "sending image to cloud vision");
-      //        // annotate image by uploading to Cloud Vision API
-      //        try {
-      //            Map<String, Float> annotations = CloudVisionUtils.annotateImage(imageBytes);
-      //            Log.d(TAG, "cloud vision annotations:" + annotations);
-      //            if (annotations != null) {
-      //                log.child("annotations").setValue(annotations);
-      //            }
-      //        } catch (IOException e) {
-      //            Log.e(TAG, "Cloud Vison API error: ", e);
-      //        }
-      //    }
-      //});
     }
   }
 }
