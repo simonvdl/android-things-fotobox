@@ -29,7 +29,7 @@ import android.os.Build;
   public static String getGPIOForButton() {
     switch (Build.DEVICE) {
       case DEVICE_RPI3:
-        return "BCM21";
+        return "BCM17";
       case DEVICE_IMX7D_PICO:
         return "GPIO6_IO14";
       default:

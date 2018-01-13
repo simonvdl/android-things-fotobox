@@ -43,10 +43,7 @@ public class FotoActivity extends Activity {
   public static final boolean USE_THERMAL_PRINTER = true;
 
   private FotoCamera mCamera;
-  private ThermalPrinter mThermalPrinter;
-  /*
-   * Driver for the doorbell button;
-   */
+  // private ThermalPrinter mThermalPrinter;
   private ButtonInputDriver mButtonInputDriver;
 
   /**
@@ -61,17 +58,17 @@ public class FotoActivity extends Activity {
 
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    Log.d(TAG, "Doorbell Activity created.");
+    Log.d(TAG, "FotoActivity created.");
 
     // We need permission to access the camera
     if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
       // A problem occurred auto-granting the permission
-      Log.d(TAG, "No permission");
-      return;
+      Log.w(TAG, "No Camera permission");
+      // return;
     }
 
     if (USE_THERMAL_PRINTER) {
-      mThermalPrinter = new ThermalPrinter(this);
+      // mThermalPrinter = new ThermalPrinter(this);
     }
 
     // Creates new handlers and associated threads for camera and networking operations.
@@ -79,7 +76,6 @@ public class FotoActivity extends Activity {
     mCameraThread.start();
     mCameraHandler = new Handler(mCameraThread.getLooper());
 
-    // Initialize the doorbell button driver
     initPIO();
 
     // Camera code is complicated, so we've shoved it all in this closet class for you.
@@ -88,10 +84,12 @@ public class FotoActivity extends Activity {
   }
 
   private void initPIO() {
+    Log.d(TAG, "initPIO()");
     try {
       mButtonInputDriver = new ButtonInputDriver(BoardDefaults.getGPIOForButton(), Button.LogicState.PRESSED_WHEN_LOW,
           KeyEvent.KEYCODE_ENTER);
       mButtonInputDriver.register();
+      Log.d(TAG, "Button registered.");
     } catch (IOException e) {
       mButtonInputDriver = null;
       Log.w(TAG, "Could not open GPIO pins", e);
@@ -108,10 +106,10 @@ public class FotoActivity extends Activity {
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
-    if (mThermalPrinter != null) {
-      mThermalPrinter.close();
-      mThermalPrinter = null;
-    }
+    //if (mThermalPrinter != null) {
+    //  mThermalPrinter.close();
+    //  mThermalPrinter = null;
+    //}
   }
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -128,7 +126,7 @@ public class FotoActivity extends Activity {
    */
   private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
     @Override public void onImageAvailable(ImageReader reader) {
-      Image image = reader.acquireLatestImage();
+      Image image = reader.acquireNextImage();
       // get image bytes
       ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
       final byte[] imageBytes = new byte[imageBuf.remaining()];
@@ -146,7 +144,8 @@ public class FotoActivity extends Activity {
   private void onPictureTaken(Bitmap bitmap) {
     if (bitmap != null) {
       // TODO: Process image
-      mThermalPrinter.printImage(bitmap);
+      Log.d(TAG, "Picture taken!" + bitmap.getByteCount());
+      // mThermalPrinter.printImage(bitmap);
     }
   }
 }
