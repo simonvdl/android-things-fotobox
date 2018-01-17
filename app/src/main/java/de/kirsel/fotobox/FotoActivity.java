@@ -27,19 +27,14 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.view.KeyEvent;
-import com.github.mjdev.libaums.UsbMassStorageDevice;
-import com.github.mjdev.libaums.fs.FileSystem;
-import com.github.mjdev.libaums.fs.UsbFile;
-import com.github.mjdev.libaums.fs.UsbFileStreamFactory;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
 import de.kirsel.fotobox.hardware.FotoCamera;
 import de.kirsel.fotobox.hardware.ThermalPrinter;
+import de.kirsel.fotobox.hardware.UsbStorage;
 import de.kirsel.fotobox.utilities.BoardDefaults;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
-import java.util.Date;
 
 /**
  * Doorbell activity that capture a picture from the Raspberry Pi 3
@@ -52,18 +47,16 @@ public class FotoActivity extends Activity {
   public static final boolean USE_THERMAL_PRINTER = false;
 
   private FotoCamera mCamera;
+  private UsbStorage mStorage;
   private ThermalPrinter mThermalPrinter;
   private ButtonInputDriver mButtonInputDriver;
-
-  /**
-   * A {@link Handler} for running Camera tasks in the background.
-   */
   private Handler mCameraHandler;
 
   /**
    * An additional thread for running Camera tasks that shouldn't block the UI.
    */
   private HandlerThread mCameraThread;
+  private HandlerThread mStorageThread;
 
   @Override public void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -86,11 +79,16 @@ public class FotoActivity extends Activity {
     mCameraThread.start();
     mCameraHandler = new Handler(mCameraThread.getLooper());
 
+    mStorageThread = new HandlerThread("StorageBackground");
+    mStorageThread.start();
+
     initPIO();
 
-    // Camera code is complicated, so we've shoved it all in this closet class for you.
     mCamera = FotoCamera.getInstance();
     mCamera.initializeCamera(this, mCameraHandler, mOnImageAvailableListener);
+
+    mStorage = UsbStorage.getInstance();
+    mStorage.initializeUsbStorage(this);
   }
 
   private void initPIO() {
@@ -111,6 +109,7 @@ public class FotoActivity extends Activity {
     mCamera.shutDown();
 
     mCameraThread.quitSafely();
+    mStorageThread.quitSafely();
     try {
       mButtonInputDriver.close();
     } catch (IOException e) {
@@ -148,12 +147,9 @@ public class FotoActivity extends Activity {
     }
   };
 
-  /**
-   * Handle image processing
-   */
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
-    saveImage(bitmap);
+    mStorage.saveImage(bitmap);
   }
 
   private void printImage(Bitmap bitmap) {
@@ -161,70 +157,6 @@ public class FotoActivity extends Activity {
       //TODO
     } else {
       Log.d(TAG, "Bitmap == null");
-    }
-  }
-
-  private FileSystem getUSBDrive() {
-    UsbMassStorageDevice[] devices = UsbMassStorageDevice.getMassStorageDevices(this);
-
-    for (UsbMassStorageDevice device : devices) {
-
-      // before interacting with a device you need to call init()!
-      try {
-        device.init();
-        // Only uses the first partition on the device
-        return device.getPartitions().get(0).getFileSystem();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }
-    return null;
-  }
-
-  private void saveImage(Bitmap bitmap) {
-    FileSystem currentFs = getUSBDrive();
-    if (currentFs != null) {
-
-      UsbFile root = currentFs.getRootDirectory();
-
-      try {
-        UsbFile file = root.createFile(getDate() + ".JPEG");
-
-        // write to a file
-        OutputStream os = UsbFileStreamFactory.createBufferedOutputStream(file, currentFs);
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
-        os.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    } else {
-      Log.d(TAG, "No USB drive detected!");
-    }
-  }
-
-  private String getDate() {
-    Date date = new Date();
-    return "" + date.getTime();
-  }
-
-  // debug only
-  private void showUsbDevices() {
-    UsbMassStorageDevice[] devices = UsbMassStorageDevice.getMassStorageDevices(this);
-
-    for (UsbMassStorageDevice device : devices) {
-
-      // before interacting with a device you need to call init()!
-      try {
-        device.init();
-        // Only uses the first partition on the device
-        FileSystem currentFs = device.getPartitions().get(0).getFileSystem();
-        Log.d(TAG, "Capacity: " + currentFs.getCapacity());
-        Log.d(TAG, "Occupied Space: " + currentFs.getOccupiedSpace());
-        Log.d(TAG, "Free Space: " + currentFs.getFreeSpace());
-        Log.d(TAG, "Chunk size: " + currentFs.getChunkSize());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
     }
   }
 }
