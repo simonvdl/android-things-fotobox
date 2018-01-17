@@ -23,14 +23,18 @@ import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Date;
 
 /**
  * Doorbell activity that capture a picture from the Raspberry Pi 3
@@ -43,7 +47,7 @@ public class FotoActivity extends Activity {
   public static final boolean USE_THERMAL_PRINTER = true;
 
   private FotoCamera mCamera;
-  // private ThermalPrinter mThermalPrinter;
+  private ThermalPrinter mThermalPrinter;
   private ButtonInputDriver mButtonInputDriver;
 
   /**
@@ -68,7 +72,8 @@ public class FotoActivity extends Activity {
     }
 
     if (USE_THERMAL_PRINTER) {
-      // mThermalPrinter = new ThermalPrinter(this);
+      mThermalPrinter = new ThermalPrinter(this);
+      Log.d(TAG, mThermalPrinter.toString());
     }
 
     // Creates new handlers and associated threads for camera and networking operations.
@@ -106,10 +111,10 @@ public class FotoActivity extends Activity {
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
-    //if (mThermalPrinter != null) {
-    //  mThermalPrinter.close();
-    //  mThermalPrinter = null;
-    //}
+    if (mThermalPrinter != null) {
+      mThermalPrinter.close();
+      mThermalPrinter = null;
+    }
   }
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
@@ -129,10 +134,10 @@ public class FotoActivity extends Activity {
       Image image = reader.acquireNextImage();
       // get image bytes
       ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
-      final byte[] imageBytes = new byte[imageBuf.remaining()];
+      final byte[] imageBytes = new byte[imageBuf.capacity()];
       imageBuf.get(imageBytes);
-      image.close();
       Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+      image.close();
 
       onPictureTaken(bitmap);
     }
@@ -142,10 +147,33 @@ public class FotoActivity extends Activity {
    * Handle image processing
    */
   private void onPictureTaken(Bitmap bitmap) {
+    Log.d(TAG, "Picture taken!");
+  }
+
+  private void printImage(Bitmap bitmap) {
     if (bitmap != null) {
-      // TODO: Process image
-      Log.d(TAG, "Picture taken!" + bitmap.getByteCount());
-      // mThermalPrinter.printImage(bitmap);
+      //TODO
+    } else {
+      Log.d(TAG, "Bitmap == null");
     }
+  }
+
+  private void saveImageToUSB(Bitmap bitmap) {
+    // TODO
+    File file =
+        new File(Environment.getExternalStoragePublicDirectory(Environment.MEDIA_MOUNTED).getPath() + "/" + getDate());
+    try {
+      file.createNewFile();
+      FileOutputStream ostream = new FileOutputStream(file);
+      bitmap.compress(Bitmap.CompressFormat.JPEG, 75, ostream);
+      ostream.close();
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private String getDate() {
+    Date date = new Date();
+    return "" + date.getTime();
   }
 }
