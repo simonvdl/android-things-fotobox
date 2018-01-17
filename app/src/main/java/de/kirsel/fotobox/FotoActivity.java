@@ -194,6 +194,8 @@ public class FotoActivity extends Activity {
       } catch (IOException e) {
         e.printStackTrace();
       }
+    } else {
+      Log.d(TAG, "No USB drive detected!");
     }
   }
 
