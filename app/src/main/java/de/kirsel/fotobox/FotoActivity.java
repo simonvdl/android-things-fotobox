@@ -23,16 +23,18 @@ import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.view.KeyEvent;
+import com.github.mjdev.libaums.UsbMassStorageDevice;
+import com.github.mjdev.libaums.fs.FileSystem;
+import com.github.mjdev.libaums.fs.UsbFile;
+import com.github.mjdev.libaums.fs.UsbFileStreamFactory;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Date;
 
@@ -44,7 +46,7 @@ import java.util.Date;
 public class FotoActivity extends Activity {
   private static final String TAG = FotoActivity.class.getSimpleName();
 
-  public static final boolean USE_THERMAL_PRINTER = true;
+  public static final boolean USE_THERMAL_PRINTER = false;
 
   private FotoCamera mCamera;
   private ThermalPrinter mThermalPrinter;
@@ -148,6 +150,7 @@ public class FotoActivity extends Activity {
    */
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
+    saveImage(bitmap);
   }
 
   private void printImage(Bitmap bitmap) {
@@ -158,22 +161,65 @@ public class FotoActivity extends Activity {
     }
   }
 
-  private void saveImageToUSB(Bitmap bitmap) {
-    // TODO
-    File file =
-        new File(Environment.getExternalStoragePublicDirectory(Environment.MEDIA_MOUNTED).getPath() + "/" + getDate());
-    try {
-      file.createNewFile();
-      FileOutputStream ostream = new FileOutputStream(file);
-      bitmap.compress(Bitmap.CompressFormat.JPEG, 75, ostream);
-      ostream.close();
-    } catch (Exception e) {
-      e.printStackTrace();
+  private FileSystem getUSBDrive() {
+    UsbMassStorageDevice[] devices = UsbMassStorageDevice.getMassStorageDevices(this);
+
+    for (UsbMassStorageDevice device : devices) {
+
+      // before interacting with a device you need to call init()!
+      try {
+        device.init();
+        // Only uses the first partition on the device
+        return device.getPartitions().get(0).getFileSystem();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+    return null;
+  }
+
+  private void saveImage(Bitmap bitmap) {
+    FileSystem currentFs = getUSBDrive();
+    if (currentFs != null) {
+
+      UsbFile root = currentFs.getRootDirectory();
+
+      try {
+        UsbFile file = root.createFile(getDate() + ".JPEG");
+
+        // write to a file
+        OutputStream os = UsbFileStreamFactory.createBufferedOutputStream(file, currentFs);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, os);
+        os.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
     }
   }
 
   private String getDate() {
     Date date = new Date();
     return "" + date.getTime();
+  }
+
+  // debug only
+  private void showUsbDevices() {
+    UsbMassStorageDevice[] devices = UsbMassStorageDevice.getMassStorageDevices(this);
+
+    for (UsbMassStorageDevice device : devices) {
+
+      // before interacting with a device you need to call init()!
+      try {
+        device.init();
+        // Only uses the first partition on the device
+        FileSystem currentFs = device.getPartitions().get(0).getFileSystem();
+        Log.d(TAG, "Capacity: " + currentFs.getCapacity());
+        Log.d(TAG, "Occupied Space: " + currentFs.getOccupiedSpace());
+        Log.d(TAG, "Free Space: " + currentFs.getFreeSpace());
+        Log.d(TAG, "Chunk size: " + currentFs.getChunkSize());
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }
