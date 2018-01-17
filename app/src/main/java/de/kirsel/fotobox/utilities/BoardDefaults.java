@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package de.kirsel.fotobox;
+package de.kirsel.fotobox.utilities;
 
 import android.os.Build;
 

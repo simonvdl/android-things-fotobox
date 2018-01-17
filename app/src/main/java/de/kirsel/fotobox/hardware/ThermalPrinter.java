@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package de.kirsel.fotobox;
+package de.kirsel.fotobox.hardware;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -55,7 +55,7 @@ public class ThermalPrinter {
   private UartDevice mDevice;
 
   // Config settings for Ada 597 thermal printer.
-  ThermalPrinter(Context c) {
+  public ThermalPrinter(Context c) {
     PeripheralManagerService manager = new PeripheralManagerService();
     try {
       List<String> devices = manager.getUartDeviceList();
@@ -241,7 +241,7 @@ public class ThermalPrinter {
     }
   }
 
-  void close() {
+  public void close() {
     if (mDevice != null) {
       try {
         mDevice.close();
