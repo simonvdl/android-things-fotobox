@@ -30,6 +30,7 @@ import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
 import com.google.android.things.contrib.driver.ht16k33.AlphanumericDisplay;
 import com.google.android.things.contrib.driver.ht16k33.Ht16k33;
+import com.google.android.things.contrib.driver.pwmspeaker.Speaker;
 import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
 import com.google.android.things.pio.Gpio;
 import de.kirsel.fotobox.hardware.FotoCamera;
@@ -55,6 +56,7 @@ public class FotoActivity extends Activity {
   private Handler mCameraHandler;
   private Gpio ledRed;
   private AlphanumericDisplay display;
+  private Speaker buzzer;
 
   /**
    * An additional thread for running Camera tasks that shouldn't block the UI.
@@ -103,6 +105,7 @@ public class FotoActivity extends Activity {
       mButtonInputDriver.register();
       display = RainbowHat.openDisplay();
       display.setBrightness(Ht16k33.HT16K33_BRIGHTNESS_MAX);
+      buzzer = RainbowHat.openPiezo();
       Log.d(TAG, "Button registered.");
     } catch (IOException e) {
       mButtonInputDriver = null;
@@ -120,6 +123,7 @@ public class FotoActivity extends Activity {
       mButtonInputDriver.close();
       ledRed.close();
       display.close();
+      buzzer.close();
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
@@ -156,6 +160,12 @@ public class FotoActivity extends Activity {
       Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
       image.close();
 
+      try {
+        buzzer.stop();
+        ledstrip.setBrightness(0);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
       onPictureTaken(bitmap);
     }
   };
@@ -184,6 +194,7 @@ public class FotoActivity extends Activity {
         display.display(i);
         Thread.sleep(500);
       }
+      buzzer.play(4000);
       display.clear();
       ledRed.setValue(false);
       mCamera.takePicture();
