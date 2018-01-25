@@ -28,6 +28,8 @@ import android.os.HandlerThread;
 import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.android.things.contrib.driver.ht16k33.AlphanumericDisplay;
+import com.google.android.things.contrib.driver.ht16k33.Ht16k33;
 import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
 import com.google.android.things.pio.Gpio;
 import de.kirsel.fotobox.hardware.FotoCamera;
@@ -52,6 +54,7 @@ public class FotoActivity extends Activity {
   private ButtonInputDriver mButtonInputDriver;
   private Handler mCameraHandler;
   private Gpio ledRed;
+  private AlphanumericDisplay display;
 
   /**
    * An additional thread for running Camera tasks that shouldn't block the UI.
@@ -98,6 +101,8 @@ public class FotoActivity extends Activity {
       ledRed = RainbowHat.openLedRed();
       mButtonInputDriver = RainbowHat.createButtonBInputDriver(KeyEvent.KEYCODE_B);
       mButtonInputDriver.register();
+      display = RainbowHat.openDisplay();
+      display.setBrightness(Ht16k33.HT16K33_BRIGHTNESS_MAX);
       Log.d(TAG, "Button registered.");
     } catch (IOException e) {
       mButtonInputDriver = null;
@@ -114,6 +119,7 @@ public class FotoActivity extends Activity {
     try {
       mButtonInputDriver.close();
       ledRed.close();
+      display.close();
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
@@ -123,7 +129,7 @@ public class FotoActivity extends Activity {
     }
   }
 
-  @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
+  @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
     if (keyCode == KeyEvent.KEYCODE_B) {
       Log.d(TAG, "button pressed");
       try {
@@ -131,10 +137,10 @@ public class FotoActivity extends Activity {
       } catch (IOException e) {
         e.printStackTrace();
       }
-      mCamera.takePicture();
+      startCountdown();
       return true;
     }
-    return super.onKeyDown(keyCode, event);
+    return super.onKeyUp(keyCode, event);
   }
 
   /**
@@ -156,11 +162,6 @@ public class FotoActivity extends Activity {
 
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
-    try {
-      ledRed.setValue(false);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
     mStorage.saveImage(bitmap);
   }
 
@@ -169,6 +170,25 @@ public class FotoActivity extends Activity {
       //TODO
     } else {
       Log.d(TAG, "Bitmap == null");
+    }
+  }
+
+  private void startCountdown() {
+    Log.d(TAG, "Countdown started");
+
+    try {
+      display.setEnabled(true);
+      for (int i = 5; i >= 0; i--) {
+
+        Thread.sleep(500);
+        display.display(i);
+        Thread.sleep(500);
+      }
+      display.clear();
+      ledRed.setValue(false);
+      mCamera.takePicture();
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
     }
   }
 }
