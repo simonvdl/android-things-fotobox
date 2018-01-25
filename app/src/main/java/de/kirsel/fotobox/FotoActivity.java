@@ -93,7 +93,7 @@ public class FotoActivity extends Activity {
   private void initPIO() {
     Log.d(TAG, "initPIO()");
     try {
-      mButtonInputDriver = RainbowHat.createButtonAInputDriver(KeyEvent.KEYCODE_A);
+      mButtonInputDriver = RainbowHat.createButtonBInputDriver(KeyEvent.KEYCODE_B);
       mButtonInputDriver.register();
       Log.d(TAG, "Button registered.");
     } catch (IOException e) {
@@ -119,13 +119,13 @@ public class FotoActivity extends Activity {
     }
   }
 
-  @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
-    if (keyCode == KeyEvent.KEYCODE_A) {
+  @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
+    if (keyCode == KeyEvent.KEYCODE_B) {
       Log.d(TAG, "button pressed");
       mCamera.takePicture();
       return true;
     }
-    return super.onKeyUp(keyCode, event);
+    return super.onKeyDown(keyCode, event);
   }
 
   /**
