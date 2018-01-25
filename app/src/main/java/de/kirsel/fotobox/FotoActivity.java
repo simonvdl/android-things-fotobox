@@ -27,12 +27,11 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import android.view.KeyEvent;
-import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
 import de.kirsel.fotobox.hardware.FotoCamera;
 import de.kirsel.fotobox.hardware.ThermalPrinter;
 import de.kirsel.fotobox.hardware.UsbStorage;
-import de.kirsel.fotobox.utilities.BoardDefaults;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -94,8 +93,7 @@ public class FotoActivity extends Activity {
   private void initPIO() {
     Log.d(TAG, "initPIO()");
     try {
-      mButtonInputDriver = new ButtonInputDriver(BoardDefaults.getGPIOForButton(), Button.LogicState.PRESSED_WHEN_LOW,
-          KeyEvent.KEYCODE_ENTER);
+      mButtonInputDriver = RainbowHat.createButtonAInputDriver(KeyEvent.KEYCODE_A);
       mButtonInputDriver.register();
       Log.d(TAG, "Button registered.");
     } catch (IOException e) {
@@ -122,7 +120,7 @@ public class FotoActivity extends Activity {
   }
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
-    if (keyCode == KeyEvent.KEYCODE_ENTER) {
+    if (keyCode == KeyEvent.KEYCODE_A) {
       Log.d(TAG, "button pressed");
       mCamera.takePicture();
       return true;
