@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
 import com.google.android.things.contrib.driver.rainbowhat.RainbowHat;
+import com.google.android.things.pio.Gpio;
 import de.kirsel.fotobox.hardware.FotoCamera;
 import de.kirsel.fotobox.hardware.ThermalPrinter;
 import de.kirsel.fotobox.hardware.UsbStorage;
@@ -50,6 +51,7 @@ public class FotoActivity extends Activity {
   private ThermalPrinter mThermalPrinter;
   private ButtonInputDriver mButtonInputDriver;
   private Handler mCameraHandler;
+  private Gpio ledRed;
 
   /**
    * An additional thread for running Camera tasks that shouldn't block the UI.
@@ -93,6 +95,7 @@ public class FotoActivity extends Activity {
   private void initPIO() {
     Log.d(TAG, "initPIO()");
     try {
+      ledRed = RainbowHat.openLedRed();
       mButtonInputDriver = RainbowHat.createButtonBInputDriver(KeyEvent.KEYCODE_B);
       mButtonInputDriver.register();
       Log.d(TAG, "Button registered.");
@@ -110,6 +113,7 @@ public class FotoActivity extends Activity {
     mStorageThread.quitSafely();
     try {
       mButtonInputDriver.close();
+      ledRed.close();
     } catch (IOException e) {
       Log.e(TAG, "button driver error", e);
     }
@@ -122,6 +126,11 @@ public class FotoActivity extends Activity {
   @Override public boolean onKeyDown(int keyCode, KeyEvent event) {
     if (keyCode == KeyEvent.KEYCODE_B) {
       Log.d(TAG, "button pressed");
+      try {
+        ledRed.setValue(true);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
       mCamera.takePicture();
       return true;
     }
@@ -147,6 +156,11 @@ public class FotoActivity extends Activity {
 
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
+    try {
+      ledRed.setValue(false);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
     mStorage.saveImage(bitmap);
   }
 
