@@ -36,4 +36,38 @@ import android.os.Build;
         throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
     }
   }
+
+  /**
+   * Return the preferred Data GPIO pin for each board.
+   */
+  public static String getGPIOforData() {
+
+    switch (Build.DEVICE) {
+      case DEVICE_RPI3:
+        return "BCM20";
+      case DEVICE_IMX6UL_PICO:
+        return "GPIO2_IO03";
+      case DEVICE_IMX7D_PICO:
+        return "GPIO6_IO14";
+      default:
+        throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
+    }
+  }
+
+  /**
+   * Return the preferred Clock GPIO pin for each board.
+   */
+  public static String getGPIOforClock() {
+    switch (Build.DEVICE) {
+      case DEVICE_RPI3:
+        return "BCM21";
+      case DEVICE_IMX6UL_PICO:
+        return "GPIO4_IO22";
+      case DEVICE_IMX7D_PICO:
+        return "GPIO2_IO02";
+      default:
+        throw new IllegalStateException("Unknown Build.DEVICE " + Build.DEVICE);
+    }
+  }
+
 }

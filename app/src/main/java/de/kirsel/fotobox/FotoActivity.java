@@ -29,6 +29,7 @@ import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.android.things.contrib.driver.tm1637.NumericDisplay;
 import de.kirsel.fotobox.hardware.FotoCamera;
 import de.kirsel.fotobox.hardware.ThermalPrinter;
 import de.kirsel.fotobox.hardware.UsbStorage;
@@ -51,6 +52,7 @@ public class FotoActivity extends Activity {
   private ThermalPrinter mThermalPrinter;
   private ButtonInputDriver mButtonInputDriver;
   private Handler mCameraHandler;
+  private NumericDisplay segmentDisplay;
 
   /**
    * An additional thread for running Camera tasks that shouldn't block the UI.
@@ -102,6 +104,13 @@ public class FotoActivity extends Activity {
       mButtonInputDriver = null;
       Log.w(TAG, "Could not open GPIO pins", e);
     }
+    try {
+      segmentDisplay = new NumericDisplay(BoardDefaults.getGPIOforData(), BoardDefaults.getGPIOforClock());
+      segmentDisplay.setBrightness(1.0f);
+      segmentDisplay.setColonEnabled(false);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override protected void onDestroy() {
@@ -119,12 +128,22 @@ public class FotoActivity extends Activity {
       mThermalPrinter.close();
       mThermalPrinter = null;
     }
+    if (segmentDisplay != null) {
+      Log.i(TAG, "Closing display");
+      try {
+        segmentDisplay.close();
+      } catch (IOException e) {
+        Log.e(TAG, "Error closing display", e);
+      } finally {
+        segmentDisplay = null;
+      }
+    }
   }
 
   @Override public boolean onKeyUp(int keyCode, KeyEvent event) {
     if (keyCode == KeyEvent.KEYCODE_ENTER) {
       Log.d(TAG, "button pressed");
-      mCamera.takePicture();
+      startCountdown();
       return true;
     }
     return super.onKeyUp(keyCode, event);
@@ -157,6 +176,23 @@ public class FotoActivity extends Activity {
       //TODO
     } else {
       Log.d(TAG, "Bitmap == null");
+    }
+  }
+
+  private void startCountdown() {
+    Log.d(TAG, "Countdown started");
+
+    try {
+      for (int i = 5; i >= 0; i--) {
+
+        Thread.sleep(500);
+        segmentDisplay.display(i);
+        Thread.sleep(500);
+      }
+      segmentDisplay.clear();
+      mCamera.takePicture();
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
     }
   }
 }

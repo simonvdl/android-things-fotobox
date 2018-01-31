@@ -29,5 +29,6 @@ dependencies {
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jre7:$kotlin_version"
   compile 'com.google.zxing:core:3.2.0'
   compile 'com.github.mjdev:libaums:0.5.5'
+  compile 'com.google.android.things.contrib:driver-tm1637:0.3'
 
 }
