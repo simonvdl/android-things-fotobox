@@ -45,7 +45,7 @@ import java.nio.ByteBuffer;
 public class FotoActivity extends Activity {
   private static final String TAG = FotoActivity.class.getSimpleName();
 
-  public static final boolean USE_THERMAL_PRINTER = false;
+  public static final boolean USE_THERMAL_PRINTER = true;
 
   private FotoCamera mCamera;
   private UsbStorage mStorage;
@@ -72,7 +72,7 @@ public class FotoActivity extends Activity {
     }
 
     if (USE_THERMAL_PRINTER) {
-      mThermalPrinter = new ThermalPrinter(this);
+      mThermalPrinter = new ThermalPrinter();
       Log.d(TAG, mThermalPrinter.toString());
     }
 
@@ -80,9 +80,6 @@ public class FotoActivity extends Activity {
     mCameraThread = new HandlerThread("CameraBackground");
     mCameraThread.start();
     mCameraHandler = new Handler(mCameraThread.getLooper());
-
-    mStorageThread = new HandlerThread("StorageBackground");
-    mStorageThread.start();
 
     initPIO();
 
@@ -144,6 +141,7 @@ public class FotoActivity extends Activity {
     if (keyCode == KeyEvent.KEYCODE_ENTER) {
       Log.d(TAG, "button pressed");
       startCountdown();
+
       return true;
     }
     return super.onKeyUp(keyCode, event);
@@ -169,6 +167,7 @@ public class FotoActivity extends Activity {
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
     mStorage.saveImage(bitmap);
+    printInfo();
   }
 
   private void printImage(Bitmap bitmap) {
@@ -194,5 +193,11 @@ public class FotoActivity extends Activity {
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
+  }
+
+  private void printInfo() {
+    mThermalPrinter.printInfo();
+    // mThermalPrinter.printQrCode("www.countrysideclub.de", 200, "www.countrysideclub.de");
+    mThermalPrinter.printEmptyLines(5);
   }
 }

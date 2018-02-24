@@ -15,7 +15,6 @@
  */
 package de.kirsel.fotobox.hardware;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.util.Log;
@@ -55,7 +54,8 @@ public class ThermalPrinter {
   private UartDevice mDevice;
 
   // Config settings for Ada 597 thermal printer.
-  public ThermalPrinter(Context c) {
+  // Config settings for Ada 597 thermal printer.
+  public ThermalPrinter() {
     PeripheralManagerService manager = new PeripheralManagerService();
     try {
       List<String> devices = manager.getUartDeviceList();
@@ -115,15 +115,7 @@ public class ThermalPrinter {
     uart.setStopBits(1);
   }
 
-  void printBitmap(byte[] imageBytes) {
-    try {
-      writeUartData(imageBytes);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-  void printImage(Bitmap bitmap) {
+  private void printImage(Bitmap bitmap) {
     if (mDevice == null) {
       return;
     }
@@ -188,7 +180,7 @@ public class ThermalPrinter {
     }
   }
 
-  void printEmptyLines(int lines) {
+  public void printEmptyLines(int lines) {
     if (mDevice == null) {
       return;
     }
@@ -197,24 +189,23 @@ public class ThermalPrinter {
     print(printerBuffer);
   }
 
-  void printLn(String text) {
-    Log.d(TAG, "Print line: " + text);
+  private void printLn(String text) {
     if (mDevice == null) {
-      Log.w(TAG, "printLn(): mDevice == null");
+      Log.d(TAG, "Printer == null!");
       return;
     }
     // The EscPosBuilder will take our formatted text and convert it to a byte array
     // understood as instructions and data by the printer.
-    ByteArrayOutputStream printerBuffer = getOutputStream();
-    writeToPrinterBuffer(printerBuffer, text.getBytes());
-    addLineFeed(printerBuffer, 1);
-    print(printerBuffer);
+    if (text != null && !text.isEmpty()) {
+      ByteArrayOutputStream printerBuffer = getOutputStream();
+      writeToPrinterBuffer(printerBuffer, text.getBytes());
+      addLineFeed(printerBuffer, 1);
+      print(printerBuffer);
+    }
   }
 
   private synchronized void writeUartData(byte[] data) throws IOException {
-    // If printer isn't initialized, abort.
     if (mDevice == null) {
-      Log.w(TAG, "writeUartData(): mDevice == null");
       return;
     }
 
@@ -263,7 +254,7 @@ public class ThermalPrinter {
 
     Bitmap qrBitmap;
     try {
-      printLn("Here's your photo!");
+      printLn("Hier findest du dein Foto:");
       printEmptyLines(1);
       qrBitmap = generateQrCode(data, size);
 
@@ -279,7 +270,26 @@ public class ThermalPrinter {
     }
   }
 
-  public Bitmap generateQrCode(String myCodeText, int size) throws WriterException {
+  public void printInfo() {
+    if (mDevice == null) {
+      return;
+    }
+    printLn(".");
+    printLn(".");
+    printLn("Hier bekommst du dein Foto:");
+    printLn("--------------------------");
+    printEmptyLines(1);
+    printLn("Countryside Club");
+    printEmptyLines(1);
+    printLn("Mail: kontakt@countrysideclub.de");
+    printLn("Instagram: @cntrysdclb ");
+    printLn("WhatsApp: 0157 80428778");
+    printEmptyLines(1);
+    printLn("www.countrysideclub.de");
+    printEmptyLines(1);
+  }
+
+  private Bitmap generateQrCode(String myCodeText, int size) throws WriterException {
     Hashtable<EncodeHintType, ErrorCorrectionLevel> hintMap = new Hashtable<EncodeHintType, ErrorCorrectionLevel>();
     hintMap.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // H = 30% damage
 
