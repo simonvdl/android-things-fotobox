@@ -8,7 +8,7 @@ android {
   compileSdkVersion 28
   defaultConfig {
     applicationId "de.kirsel.fotobox"
-    minSdkVersion 26
+    minSdkVersion 27
     targetSdkVersion 28
     versionCode 2
     versionName "0.1.0"
@@ -23,12 +23,13 @@ android {
 
 dependencies {
   implementation fileTree(dir: 'libs', include: ['*.jar'])
-  implementation 'com.google.android.things.contrib:driver-button:0.3'
+  implementation 'com.google.android.things.contrib:driver-button:1.0'
   implementation 'com.android.support:support-v4:28.0.0'
   compileOnly 'com.google.android.things:androidthings:1.0'
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
   implementation 'com.google.zxing:core:3.2.0'
   implementation 'com.github.mjdev:libaums:0.5.5'
-  implementation 'com.google.android.things.contrib:driver-tm1637:0.3'
+  implementation 'com.google.android.things.contrib:driver-tm1637:1.0'
+  implementation 'com.google.android.things.contrib:driver-thermalprinter:0.1'
 
 }
