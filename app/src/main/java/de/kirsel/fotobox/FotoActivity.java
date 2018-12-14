@@ -20,6 +20,9 @@ import android.app.Activity;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.media.Image;
 import android.media.ImageReader;
 import android.os.Bundle;
@@ -29,9 +32,9 @@ import android.util.Log;
 import android.view.KeyEvent;
 import com.google.android.things.contrib.driver.button.Button;
 import com.google.android.things.contrib.driver.button.ButtonInputDriver;
+import com.google.android.things.contrib.driver.thermalprinter.ThermalPrinter;
 import com.google.android.things.contrib.driver.tm1637.NumericDisplay;
 import de.kirsel.fotobox.hardware.FotoCamera;
-import de.kirsel.fotobox.hardware.ThermalPrinter;
 import de.kirsel.fotobox.hardware.UsbStorage;
 import de.kirsel.fotobox.utilities.BoardDefaults;
 import java.io.IOException;
@@ -72,7 +75,11 @@ public class FotoActivity extends Activity {
     }
 
     if (USE_THERMAL_PRINTER) {
-      mThermalPrinter = new ThermalPrinter();
+      try {
+        mThermalPrinter = new ThermalPrinter("UART0");
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
       Log.d(TAG, mThermalPrinter.toString());
     }
 
@@ -93,7 +100,8 @@ public class FotoActivity extends Activity {
   private void initPIO() {
     Log.d(TAG, "initPIO()");
     try {
-      mButtonInputDriver = new ButtonInputDriver(BoardDefaults.getGPIOForButton(), Button.LogicState.PRESSED_WHEN_LOW,
+      mButtonInputDriver = new ButtonInputDriver(BoardDefaults.getGPIOForButton(),
+          Button.LogicState.PRESSED_WHEN_LOW,
           KeyEvent.KEYCODE_ENTER);
       mButtonInputDriver.register();
       Log.d(TAG, "Button registered.");
@@ -102,7 +110,8 @@ public class FotoActivity extends Activity {
       Log.w(TAG, "Could not open GPIO pins", e);
     }
     try {
-      segmentDisplay = new NumericDisplay(BoardDefaults.getGPIOforData(), BoardDefaults.getGPIOforClock());
+      segmentDisplay =
+          new NumericDisplay(BoardDefaults.getGPIOforData(), BoardDefaults.getGPIOforClock());
       segmentDisplay.setBrightness(1.0f);
       segmentDisplay.setColonEnabled(false);
     } catch (IOException e) {
@@ -122,8 +131,13 @@ public class FotoActivity extends Activity {
       Log.e(TAG, "button driver error", e);
     }
     if (mThermalPrinter != null) {
-      mThermalPrinter.close();
-      mThermalPrinter = null;
+      try {
+        mThermalPrinter.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      } finally {
+        mThermalPrinter = null;
+      }
     }
     if (segmentDisplay != null) {
       Log.i(TAG, "Closing display");
@@ -150,29 +164,33 @@ public class FotoActivity extends Activity {
   /**
    * Listener for new camera images.
    */
-  private ImageReader.OnImageAvailableListener mOnImageAvailableListener = new ImageReader.OnImageAvailableListener() {
-    @Override public void onImageAvailable(ImageReader reader) {
-      Image image = reader.acquireNextImage();
-      // get image bytes
-      ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
-      final byte[] imageBytes = new byte[imageBuf.capacity()];
-      imageBuf.get(imageBytes);
-      Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-      image.close();
+  private ImageReader.OnImageAvailableListener mOnImageAvailableListener =
+      new ImageReader.OnImageAvailableListener() {
+        @Override public void onImageAvailable(ImageReader reader) {
+          Image image = reader.acquireNextImage();
+          // get image bytes
+          ByteBuffer imageBuf = image.getPlanes()[0].getBuffer();
+          final byte[] imageBytes = new byte[imageBuf.capacity()];
+          imageBuf.get(imageBytes);
+          Bitmap bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+          image.close();
 
-      onPictureTaken(bitmap);
-    }
-  };
+          onPictureTaken(bitmap);
+        }
+      };
 
   private void onPictureTaken(Bitmap bitmap) {
     Log.d(TAG, "Picture taken!");
-    mStorage.saveImage(bitmap);
+    //mStorage.saveImage(bitmap);
     printInfo();
+    printImage(bitmap);
   }
 
   private void printImage(Bitmap bitmap) {
     if (bitmap != null) {
-      //TODO
+      Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 384, 256, false);
+      // Print a bitmap
+      mThermalPrinter.enqueue(new ThermalPrinter.BitmapJob().printBitmap(resizedBitmap));
     } else {
       Log.d(TAG, "Bitmap == null");
     }
@@ -196,8 +214,7 @@ public class FotoActivity extends Activity {
   }
 
   private void printInfo() {
-    mThermalPrinter.printInfo();
-    // mThermalPrinter.printQrCode("www.countrysideclub.de", 200, "www.countrysideclub.de");
-    mThermalPrinter.printEmptyLines(5);
+    mThermalPrinter.enqueue(
+        new ThermalPrinter.TextJob().printText("www.countryside-media.de \n\n\n"));
   }
 }
